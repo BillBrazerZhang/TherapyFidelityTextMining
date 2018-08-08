@@ -25,59 +25,70 @@ class KeywordCount:
         self.keywordPart = defaultdict(dict)  #percentage per keyword from all keywords
         self.keywordPer = float(0)  #percentage all keywords from all words
         #init for questionMark()
-        self.sentNum = 0 
         self.questionStat = 0
         self.questionLoc = []
         self.questionPer = float(0)
 
         print("Reading data...")
+        print("Parsing by words...")
         with open(fname, encoding='utf-8', errors='ignore') as f:
             data = f.read()
         tokenizer = nltk.tokenize.TreebankWordTokenizer()
         self.data = tokenizer.tokenize(data)
+        print("Parsing by sentences...")
+        from nltk.tokenize import sent_tokenize
+        self.sentNum = 0 
+        self.sents = []
+        with open(fname, encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                line = line.lower()
+                self.sentNum += len(sent_tokenize(line))
+                for sent in sent_tokenize(line):
+                    self.sents.append(sent)
+
         print("done")
 
         print("Initializing keword dictionary...")
         # Dictionary of key-terms for CTS fidelity
-        keywordCTS = defaultdict(set)
+        self.keywordCTS = defaultdict(set)
 
-        keywordCTS['Agenda'] = {'agenda',['priorities','most important','focus on first'],['talk about today','work on today','focus on during the session','work on'] \
-                                ,['you like to add to the agenda','you like to add anything to the agenda','you want to add to the agenda' \
-                                ,'you want to add anything to the agenda'],'last week'}
+        self.keywordCTS['Agenda'] = {'agenda','priorities','most important','focus on first','talk about today','work on today','focus on during the session','work on' \
+                                ,'you like to add to the agenda','you like to add anything to the agenda','you want to add to the agenda' \
+                                ,'you want to add anything to the agenda','last week'}
 
-        keywordCTS['Feedback'] = {'feedback',['previous','last time','last week','last session','past session'] \
-                                  ,['think about today','things go today','think about today\'s session'],'concern','unhelpful','helpful' \
-                                  ,['anything i can do better','anything we can do better'],['concerns about today\'s session','helpful about the session'] \
-                                  ,'learn','skills','achieve','goals',['if i understand you correctly', 'are you saying', 'do i have it right']}
+        self.keywordCTS['Feedback'] = {'feedback','previous','last time','last week','last session','past session' \
+                                  ,'think about today','things go today','think about today\'s session','concern','unhelpful','helpful' \
+                                  ,'anything i can do better','anything we can do better','concerns about today\'s session','helpful about the session' \
+                                  ,'learn','skills','achieve','goals','if i understand you correctly', 'are you saying', 'do i have it right'}
 
-        keywordCTS['Understanding'] = {['understand','understanding'],'sounds like',['you are saying','you are feeling'],['you were feeling','you felt'] \
-                                       ,['see','makes sense','i see'],['feel that way','feel this way']}
+        self.keywordCTS['Understanding'] = {'understand','understanding','sounds like','you are saying','you are feeling','you were feeling','you felt' \
+                                       ,'see','makes sense','i see','feel that way','feel this way'}
 
-        keywordCTS['Interpersonal Effectiveness'] = {'sorry','hard','difficult','tough' \
+        self.keywordCTS['Interpersonal Effectiveness'] = {'sorry','hard','difficult','tough' \
                                                      ,'dissappointing','stressful','stressed' \
                                                      ,'scary','frightening','upset','upsetting'\
                                                      ,'unfortunate'}
 
-        keywordCTS['Collaboration'] = {'choice', 'you want to do','good idea','because','will','help you get your goal'}
+        self.keywordCTS['Collaboration'] = {'choice', 'you want to do','good idea','because','will','help you get your goal'}
 
-        keywordCTS['Guided Discovery'] = {'meaning','mean','self','how','why','evidence' \
+        self.keywordCTS['Guided Discovery'] = {'meaning','mean','self','how','why','evidence' \
                                           ,'conclusion','conclude','decide','decision','decided' \
                                           ,'know','proof','tell me more','assume','assumption' \
                                           ,'hypothesis','disprove','facts','fact','solutions' \
                                           ,'brainstorm','solve','alternative','other explanations' \
                                           ,'another way','other way','to think about','to explain','reason'} 
 
-        keywordCTS['Focus on Key Cognitions'] = {'thinking','tell yourself','through your mind' \
+        self.keywordCTS['Focus on Key Cognitions'] = {'thinking','tell yourself','through your mind' \
                                                  ,'thought','think','connection','lead to','connected' \
                                                  ,'connect','link','linked','make you','you do'}
 
-        keywordCTS['Choices of Intervention'] = {}
+        self.keywordCTS['Choices of Intervention'] = {}
 
-        keywordCTS['Homework'] = {'homework','review',' at home','practice','assignment','assign' \
+        self.keywordCTS['Homework'] = {'homework','review','at home','practice','assignment','assign' \
                                   ,'assigned','progress','learned','improve','learn','skills' \
                                   ,'goal','better','barrier','in the way','expect','problems','succeed','success'}
 
-        keywordCTS['Social Skills Training'] = {'rational','help you learn this skill','help you with your goal' \
+        self.keywordCTS['Social Skills Training'] = {'rational','help you learn this skill','help you with your goal' \
                                                 ,'demonstrate','to make your next role','play better','play even better','try to focus on'}
                                   
 
@@ -105,15 +116,27 @@ class KeywordCount:
         s = 0
         for k1 in self.keywordCTS.keys():
             for k2 in self.keywordCTS[k1]:
-                if k2 in self.wordCount.keys():
-                    self.keywordStat[k1][k2] = self.wordCount[k2]
-                    s += self.wordCount[k2]
-                    loc = []
-                    cap = len(self.words)
-                    for i in range(cap):
-                        if self.words[i] == k2:
-                            loc.append(float(i)/float(cap))
-                    self.keywordLoc[k1][k2] = loc
+            	self.keywordStat[k1][k2] = 0
+            	if len(k2.split()) == 1:
+                    if k2 in self.wordCount.keys():
+                        self.keywordStat[k1][k2] = self.wordCount[k2]
+                        s += self.wordCount[k2]
+                        loc = []
+                        cap = len(self.words)
+                        for i in range(cap):
+                            if self.words[i] == k2:
+                                loc.append(float(i)/float(cap))
+                        self.keywordLoc[k1][k2] = loc
+                else:                		
+                	loc = []
+                	for i in range(self.sentNum):
+                	    if k2 in self.sents[i]:
+                	        self.keywordStat[k1][k2] += self.sents[i].count(k2)
+                	        s += self.sents[i].count(k2)
+                	        for j in range(self.sents[i].count(k2)):
+                	        	loc.append(float(i)/float(self.sentNum))
+                	if self.keywordStat[k1][k2] > 0:
+                		self.keywordLoc[k1][k2] = loc
         for k1 in self.keywordStat.keys():
             for k2 in self.keywordStat[k1].keys():
                 self.keywordPart[k1][k2] = self.keywordStat[k1][k2]/float(s)
@@ -122,10 +145,6 @@ class KeywordCount:
 
     def questionMark(self):
     	print('Starting questionmark statistics...')
-        with open(self.name, encoding='utf-8', errors='ignore') as f:
-            for line in f:
-                line = line.lower()
-                self.sentNum += len(sent_tokenize(line))
         l = len(self.data)
         for i in range(l):
     	    if self.data[i] == '?':
